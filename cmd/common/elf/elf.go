@@ -1,156 +1,142 @@
 package elf
 
-import (
-	"encoding/binary"
-	"io"
-)
-
 type Elf struct {
-	Identification ElfIdentification
 	Header         ElfHeader
-	ProgramHeader  ElfProgramHeader
-	SectionHeader  *ElfSectionHeader
+	ProgramHeaders []*ElfProgramHeader
+	Data           []byte
+	SectionHeaders []*ElfSectionHeader
+
+	Offset uint64
 }
 
-type ElfIdentification struct {
-	Magic      string
-	Class      uint8
-	Data       uint8
-	Version    uint8
-	OsAbi      uint8
-	AbiVersion uint8
-}
-
-type ElfHeader struct {
-	Type                     uint16
-	Machine                  uint16
-	Version                  uint32
-	Entry                    uint64
-	ProgramHeaderOffset      uint64
-	SectionHeaderOffset      uint64
-	Flags                    uint32
-	HeaderSize               uint16
-	ProgramHeaderEntrySize   uint16
-	ProgramHeaderEntries     uint16
-	SectionHeaderEntrySize   uint16
-	SectionHeaderEntries     uint16
-	SectionHeaderStringIndex uint16
-}
-
-type ElfProgramHeader struct {
-	Type            uint32
-	Flags           uint32
-	Offset          uint64
-	VirtualAddress  uint64
-	PhysicalAddress uint64
-	FileSize        uint64
-	MemorySize      uint64
-	Align           uint64
-	Data            []byte
-}
-
-type ElfSectionHeader struct {
-	Name         uint32
-	Type         uint32
-	Flags        uint64
-	Address      uint64
-	Offset       uint64
-	Size         uint64
-	Link         uint32
-	Info         uint32
-	AddressAlign uint64
-	EntrySize    uint64
-}
-
-func NewElf() Elf {
-	program := []byte{
-		0xB8, 0x01, 0x00, 0x00, 0x00, 0xBF, 0x01, 0x00, 0x00, 0x00, 0x48, 0xBE, 0x9D, 0x00, 0x40, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0xBA, 0x0D, 0x00, 0x00, 0x00, 0x0F, 0x05, 0xB8, 0x3C, 0x00, 0x00, 0x00,
-		0x48, 0x31, 0xFF, 0x0F, 0x05,
-	}
-	text := "hall\n"
-
+func NewElf(program ElfProgram) Elf {
 	elf := Elf{
-		Identification: ElfIdentification{
-			Magic:      "\x7FELF",
-			Class:      2,
-			Data:       1,
-			Version:    1,
-			OsAbi:      0,
-			AbiVersion: 0,
-		},
 		Header: ElfHeader{
+			Identification: ElfIdentification{
+				Magic:      [4]byte{0x7F, 0x45, 0x4C, 0x46},
+				Class:      2,
+				Data:       1,
+				Version:    1,
+				OsAbi:      0,
+				AbiVersion: 0,
+			},
 			Type:                     2,
 			Machine:                  0x3E,
 			Version:                  1,
-			Entry:                    4194424,
-			ProgramHeaderOffset:      64,
-			SectionHeaderOffset:      0,
+			Entry:                    134512960,
 			Flags:                    0,
-			HeaderSize:               64,
-			ProgramHeaderEntrySize:   56,
-			ProgramHeaderEntries:     1,
-			SectionHeaderEntrySize:   0,
-			SectionHeaderEntries:     0,
-			SectionHeaderStringIndex: 0,
+			HeaderSize:               ElfHeaderSize,
+			ProgramHeaderEntrySize:   ElfProgramHeaderSize,
+			SectionHeaderEntrySize:   ElfSectionHeaderSize,
+			SectionHeaderStringIndex: 4,
 		},
-		ProgramHeader: ElfProgramHeader{
-			Type:            1,
-			Flags:           5,
-			Offset:          0,
-			VirtualAddress:  4194304,
-			PhysicalAddress: 4194304,
-			Align:           4096,
-			Data:            program,
-		},
+		ProgramHeaders: []*ElfProgramHeader{},
+		SectionHeaders: []*ElfSectionHeader{},
+		Offset:         uint64(ElfHeaderSize),
 	}
-	elf.ProgramHeader.Data = append(elf.ProgramHeader.Data, []byte(text)...)
-	elf.ProgramHeader.FileSize = 121 + uint64(len(elf.ProgramHeader.Data))
-	elf.ProgramHeader.MemorySize = elf.ProgramHeader.FileSize
+
+	AddElfProgramHeaders(&elf, program)
+	EndElfProgramHeaders(&elf)
+
+	AddElfSectionHeaders(&elf)
+
+	elf.Header.ProgramHeaderOffset = GetElfProgramHeadersStart(&elf)
+	elf.Header.ProgramHeaderEntries = uint16(len(elf.ProgramHeaders))
+
+	elf.Header.SectionHeaderOffset = GetElfSectionHeadersStart(&elf)
+	elf.Header.SectionHeaderEntries = uint16(len(elf.SectionHeaders))
 
 	return elf
 }
 
-func EncodeElfIdentification(w io.Writer, data ElfIdentification) {
-	binary.Write(w, binary.LittleEndian, []byte(data.Magic))
-	binary.Write(w, binary.LittleEndian, data.Class)
-	binary.Write(w, binary.LittleEndian, data.Data)
-	binary.Write(w, binary.LittleEndian, data.Version)
-	binary.Write(w, binary.LittleEndian, data.OsAbi)
-	binary.Write(w, binary.LittleEndian, data.AbiVersion)
-	binary.Write(w, binary.LittleEndian, [7]byte{})
+func GetElfProgramHeadersStart(elf *Elf) uint64 {
+	return uint64(ElfHeaderSize)
 }
 
-func EncodeElfHeader(w io.Writer, data ElfHeader) {
-	binary.Write(w, binary.LittleEndian, data.Type)
-	binary.Write(w, binary.LittleEndian, data.Machine)
-	binary.Write(w, binary.LittleEndian, data.Version)
-	binary.Write(w, binary.LittleEndian, data.Entry)
-	binary.Write(w, binary.LittleEndian, data.ProgramHeaderOffset)
-	binary.Write(w, binary.LittleEndian, data.SectionHeaderOffset)
-	binary.Write(w, binary.LittleEndian, data.Flags)
-	binary.Write(w, binary.LittleEndian, data.HeaderSize)
-	binary.Write(w, binary.LittleEndian, data.ProgramHeaderEntrySize)
-	binary.Write(w, binary.LittleEndian, data.ProgramHeaderEntries)
-	binary.Write(w, binary.LittleEndian, data.SectionHeaderEntrySize)
-	binary.Write(w, binary.LittleEndian, data.SectionHeaderEntries)
-	binary.Write(w, binary.LittleEndian, data.SectionHeaderStringIndex)
+func GetElfProgramHeadersEnd(elf *Elf) uint64 {
+	return GetElfProgramHeadersStart(elf) + uint64(ElfProgramHeaderSize)*uint64(len(elf.ProgramHeaders))
 }
 
-func EncodeElfProgramHeader(w io.Writer, data ElfProgramHeader) {
-	binary.Write(w, binary.LittleEndian, data.Type)
-	binary.Write(w, binary.LittleEndian, data.Flags)
-	binary.Write(w, binary.LittleEndian, data.Offset)
-	binary.Write(w, binary.LittleEndian, data.VirtualAddress)
-	binary.Write(w, binary.LittleEndian, data.PhysicalAddress)
-	binary.Write(w, binary.LittleEndian, data.FileSize)
-	binary.Write(w, binary.LittleEndian, data.MemorySize)
-	binary.Write(w, binary.LittleEndian, data.Align)
-	binary.Write(w, binary.LittleEndian, data.Data)
+func GetElfProgramStart(elf *Elf) uint64 {
+	return GetAlignedAddress(GetElfProgramHeadersEnd(elf), 16)
 }
 
-func EncodeElf(w io.Writer, data Elf) {
-	EncodeElfIdentification(w, data.Identification)
+func GetElfSectionHeadersStart(elf *Elf) uint64 {
+	return GetAlignedAddress(GetElfProgramStart(elf)+uint64(len(elf.Data)), 8)
+}
+
+func AddElfProgramHeaders(elf *Elf, program ElfProgram) {
+	AddElfProgramHeader(elf, NewElfProgramHeaderLoadElf(), []byte{})
+	code := EncodeElfProgramData(program)
+	AddElfProgramHeader(elf, NewElfProgramHeaderLoadCode(uint64(len(code))), code)
+	AddElfProgramHeader(elf, NewElfProgramHeaderStack(), []byte{})
+}
+
+func EndElfProgramHeaders(elf *Elf) {
+	elf.ProgramHeaders[0].FileSize = GetElfProgramHeadersEnd(elf)
+	elf.ProgramHeaders[0].MemorySize = elf.ProgramHeaders[0].FileSize
+
+	elf.ProgramHeaders[1].Offset = GetElfProgramStart(elf)
+	elf.ProgramHeaders[1].VirtualAddress = elf.ProgramHeaders[0].VirtualAddress + elf.ProgramHeaders[1].Offset
+	elf.ProgramHeaders[1].PhysicalAddress = elf.ProgramHeaders[1].VirtualAddress
+}
+
+func AddElfSectionHeaders(elf *Elf) {
+	AddElfSectionHeader(elf, NewElfSectionHeaderNull(), []byte{})
+	AddElfSectionHeader(elf, NewElfSectionHeaderProgram(27, elf.ProgramHeaders[1].VirtualAddress, elf.ProgramHeaders[1].Offset, elf.ProgramHeaders[1].MemorySize), []byte{})
+	symbolTable := []byte{
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x04, 0x00, 0xF1, 0xFF,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x09, 0x00, 0x00, 0x00, 0x12, 0x00, 0x01, 0x00, 0xF0, 0x80, 0x04, 0x08, 0x00, 0x00, 0x00, 0x00,
+		0x26, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00, 0x12, 0x00, 0x01, 0x00,
+		0x20, 0x81, 0x04, 0x08, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x18, 0x00, 0x00, 0x00, 0x12, 0x00, 0x01, 0x00, 0x40, 0x81, 0x04, 0x08, 0x00, 0x00, 0x00, 0x00,
+		0x32, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1F, 0x00, 0x00, 0x00, 0x11, 0x00, 0x01, 0x00,
+		0x78, 0x81, 0x04, 0x08, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	}
+	AddElfSectionHeader(elf, NewElfSectionHeaderSymbolTable(1, elf.SectionHeaders[1].Offset+elf.SectionHeaders[1].Size, uint64(len(symbolTable))), symbolTable)
+	stringTable := EncodeElfStringtable(ElfStringtable{
+		"", "world.c", "myprint", "myexit", "nomain", "str",
+	})
+	AddElfSectionHeader(elf, NewElfSectionHeaderStringTable(9, elf.SectionHeaders[2].Offset+elf.SectionHeaders[2].Size, uint64(len(stringTable))), stringTable)
+	stringTable = EncodeElfStringtable(ElfStringtable{
+		"", ".symtab", ".strtab", ".shstrtab", "tiny",
+	})
+	AddElfSectionHeader(elf, NewElfSectionHeaderStringTable(17, elf.SectionHeaders[3].Offset+elf.SectionHeaders[3].Size, uint64(len(stringTable))), stringTable)
+}
+
+func AddElfProgramHeader(elf *Elf, header *ElfProgramHeader, data []byte) {
+	align := make([]byte, GetAlignedShift(elf.Offset, 8))
+	elf.Data = append(elf.Data, align...)
+	elf.Offset += uint64(len(align))
+
+	elf.ProgramHeaders = append(elf.ProgramHeaders, header)
+	elf.Data = append(elf.Data, data...)
+	elf.Offset += uint64(len(data))
+}
+
+func AddElfSectionHeader(elf *Elf, header *ElfSectionHeader, data []byte) {
+	align := make([]byte, GetAlignedShift(elf.Offset, header.AddressAlign))
+	elf.Data = append(elf.Data, align...)
+	elf.Offset += uint64(len(align))
+
+	elf.SectionHeaders = append(elf.SectionHeaders, header)
+	elf.Data = append(elf.Data, data...)
+	elf.Offset += uint64(len(data))
+}
+
+func EncodeElf(w *ElfWriter, data Elf) {
 	EncodeElfHeader(w, data.Header)
-	EncodeElfProgramHeader(w, data.ProgramHeader)
+	for _, header := range data.ProgramHeaders {
+		EncodeElfProgramHeader(w, header)
+	}
+	w.Align(16)
+	for _, data := range data.Data {
+		w.Write(data)
+	}
+	w.Align(8)
+	for _, header := range data.SectionHeaders {
+		EncodeElfSectionHeader(w, header)
+	}
 }
