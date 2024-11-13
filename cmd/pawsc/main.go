@@ -4,11 +4,21 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/LamkasDev/paws/cmd/common/elf"
+	"github.com/LamkasDev/paws/cmd/common/lexer"
+	"github.com/LamkasDev/paws/cmd/common/parser"
 )
 
 func main() {
-	f, err := os.OpenFile("main", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 777)
+	lexerc := lexer.NewLexer()
+	parserc := parser.NewParser()
+
+	input, _ := os.ReadFile("../../data/main.txt")
+	lexerc.Process(string(input))
+	lexerc.Print()
+	parserc.Process(lexerc)
+	parserc.Print()
+
+	/* f, err := os.OpenFile("main", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 777)
 	if err != nil {
 		panic(err)
 	}
@@ -60,7 +70,7 @@ func main() {
 	}))
 	if err != nil {
 		panic(err)
-	}
+	} */
 
 	fmt.Printf("done :3")
 }
