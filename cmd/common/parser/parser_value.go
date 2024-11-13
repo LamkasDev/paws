@@ -13,6 +13,8 @@ func (parser *Parser) GetExpressionValue() *ParserExpression {
 			expression = NewParserExpressionArithmetic(expression, parser.GetExpressionValue(), nextToken)
 		}
 		return expression
+	case lexer.LexerTokenString:
+		return NewParserExpressionPrimitive(token.Value)
 	default:
 		// TODO: error handling
 		return nil

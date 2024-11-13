@@ -5,7 +5,7 @@ import "github.com/LamkasDev/paws/cmd/common/lexer"
 func (parser *Parser) GetExpressionStatement() *ParserExpression {
 	token := parser.GetNextToken()
 	switch token.Type {
-	case lexer.LexerTokenString:
+	case lexer.LexerTokenIdentifier:
 		if nextToken := parser.PeekNextToken(); nextToken == nil || nextToken.Type != lexer.LexerTokenEq {
 			return nil
 		}

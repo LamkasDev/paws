@@ -16,5 +16,5 @@ func NewParserExpressionPrimitive(value interface{}) *ParserExpression {
 }
 
 func (expression *ParserExpressionPrimitive) Sprint() string {
-	return fmt.Sprintf("%d", expression.Value)
+	return fmt.Sprintf("%+v", expression.Value)
 }

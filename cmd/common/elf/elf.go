@@ -38,7 +38,7 @@ func NewElf(program ElfProgram) Elf {
 	AddElfProgramHeaders(&elf, program)
 	EndElfProgramHeaders(&elf)
 
-	AddElfSectionHeaders(&elf)
+	AddElfSectionHeaders(&elf, program)
 
 	elf.Header.ProgramHeaderOffset = GetElfProgramHeadersStart(&elf)
 	elf.Header.ProgramHeaderEntries = uint16(len(elf.ProgramHeaders))
@@ -81,29 +81,60 @@ func EndElfProgramHeaders(elf *Elf) {
 	elf.ProgramHeaders[1].PhysicalAddress = elf.ProgramHeaders[1].VirtualAddress
 }
 
-func AddElfSectionHeaders(elf *Elf) {
+func AddElfSectionHeaders(elf *Elf, program ElfProgram) {
 	AddElfSectionHeader(elf, NewElfSectionHeaderNull(), []byte{})
 	AddElfSectionHeader(elf, NewElfSectionHeaderProgram(27, elf.ProgramHeaders[1].VirtualAddress, elf.ProgramHeaders[1].Offset, elf.ProgramHeaders[1].MemorySize), []byte{})
-	symbolTable := []byte{
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x04, 0x00, 0xF1, 0xFF,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x09, 0x00, 0x00, 0x00, 0x12, 0x00, 0x01, 0x00, 0xF0, 0x80, 0x04, 0x08, 0x00, 0x00, 0x00, 0x00,
-		0x26, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00, 0x12, 0x00, 0x01, 0x00,
-		0x20, 0x81, 0x04, 0x08, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x18, 0x00, 0x00, 0x00, 0x12, 0x00, 0x01, 0x00, 0x40, 0x81, 0x04, 0x08, 0x00, 0x00, 0x00, 0x00,
-		0x32, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1F, 0x00, 0x00, 0x00, 0x11, 0x00, 0x01, 0x00,
-		0x78, 0x81, 0x04, 0x08, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	symbolTable := ElfSymbolTable{
+		Symbol{},
+		Symbol{
+			Name:               1,
+			Flags:              0x4,
+			SectionHeaderIndex: 65521,
+		},
+		Symbol{
+			Name:               9,
+			Flags:              0x12,
+			SectionHeaderIndex: 1,
+			Value:              134512880,
+			Size:               38,
+		},
+		Symbol{
+			Name:               17,
+			Flags:              0x12,
+			SectionHeaderIndex: 1,
+			Value:              134512928,
+			Size:               17,
+		},
+		Symbol{
+			Name:               24,
+			Flags:              0x12,
+			SectionHeaderIndex: 1,
+			Value:              134512960,
+			Size:               50,
+		},
+		Symbol{
+			Name:               31,
+			Flags:              0x11,
+			SectionHeaderIndex: 1,
+			Value:              134513016,
+			Size:               8,
+		},
 	}
-	AddElfSectionHeader(elf, NewElfSectionHeaderSymbolTable(1, elf.SectionHeaders[1].Offset+elf.SectionHeaders[1].Size, uint64(len(symbolTable))), symbolTable)
-	stringTable := EncodeElfStringtable(ElfStringtable{
-		"", "world.c", "myprint", "myexit", "nomain", "str",
-	})
-	AddElfSectionHeader(elf, NewElfSectionHeaderStringTable(9, elf.SectionHeaders[2].Offset+elf.SectionHeaders[2].Size, uint64(len(stringTable))), stringTable)
-	stringTable = EncodeElfStringtable(ElfStringtable{
+	symbolTableData := EncodeElfSymbolTable(symbolTable)
+	AddElfSectionHeader(elf, NewElfSectionHeaderSymbolTable(1, elf.SectionHeaders[1].Offset+elf.SectionHeaders[1].Size, uint64(len(symbolTableData))), symbolTableData)
+	stringTable := ElfStringtable{
+		"",
+	}
+	for _, section := range program.Sections {
+		stringTable = append(stringTable, section.Name)
+	}
+	stringTableData := EncodeElfStringtable(stringTable)
+	AddElfSectionHeader(elf, NewElfSectionHeaderStringTable(9, elf.SectionHeaders[2].Offset+elf.SectionHeaders[2].Size, uint64(len(stringTableData))), stringTableData)
+	stringTable = ElfStringtable{
 		"", ".symtab", ".strtab", ".shstrtab", "tiny",
-	})
-	AddElfSectionHeader(elf, NewElfSectionHeaderStringTable(17, elf.SectionHeaders[3].Offset+elf.SectionHeaders[3].Size, uint64(len(stringTable))), stringTable)
+	}
+	stringTableData = EncodeElfStringtable(stringTable)
+	AddElfSectionHeader(elf, NewElfSectionHeaderStringTable(17, elf.SectionHeaders[3].Offset+elf.SectionHeaders[3].Size, uint64(len(stringTableData))), stringTableData)
 }
 
 func AddElfProgramHeader(elf *Elf, header *ElfProgramHeader, data []byte) {

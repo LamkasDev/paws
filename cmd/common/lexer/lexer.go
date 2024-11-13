@@ -41,8 +41,15 @@ func (lexer *Lexer) GetToken() *LexerToken {
 		}
 	case ' ':
 		return nil
+	case '"':
+		str := lexer.GetNextString()
+		_ = lexer.GetNextCharacter()
+		return &LexerToken{
+			Type:  LexerTokenString,
+			Value: str,
+		}
 	default:
-		str := lexer.GetNextString(c)
+		str := lexer.GetNextIdentifier(c)
 		if num, err := strconv.Atoi(str); err == nil {
 			return &LexerToken{
 				Type:  LexerTokenNumber,
@@ -51,7 +58,7 @@ func (lexer *Lexer) GetToken() *LexerToken {
 		}
 
 		return &LexerToken{
-			Type:  LexerTokenString,
+			Type:  LexerTokenIdentifier,
 			Value: str,
 		}
 	}
@@ -66,7 +73,16 @@ func (lexer *Lexer) Print() {
 	fmt.Printf("\n")
 }
 
-func (lexer *Lexer) GetNextString(c rune) string {
+func (lexer *Lexer) GetNextString() string {
+	s := ""
+	for !lexer.IsDone() && lexer.File[lexer.Position] != '"' {
+		s += string(lexer.GetNextCharacter())
+	}
+
+	return s
+}
+
+func (lexer *Lexer) GetNextIdentifier(c rune) string {
 	s := string(c)
 	for !lexer.IsDone() && unicode.IsLetter(lexer.File[lexer.Position]) {
 		s += string(lexer.GetNextCharacter())
