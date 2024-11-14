@@ -25,13 +25,21 @@ func (parser *Parser) Process(lexer *lexer.Lexer) {
 	parser.Lexer = lexer
 	parser.Position = 0
 	for !parser.IsDone() {
-		expression := parser.GetExpressionStatement()
+		expression := parser.GetExpressionGlobal()
 		if expression == nil {
 			panic("couldn't create statement")
 			continue
 		}
 		parser.Expressions = append(parser.Expressions, expression)
 	}
+}
+
+func (parser *Parser) MatchToken(tokenType uint16) *lexer.LexerToken {
+	if nextToken := parser.PeekNextToken(); nextToken == nil || nextToken.Type != tokenType {
+		return nil
+	}
+
+	return parser.GetNextToken()
 }
 
 func (parser *Parser) PeekNextToken() *lexer.LexerToken {

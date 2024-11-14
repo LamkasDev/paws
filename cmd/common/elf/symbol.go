@@ -15,7 +15,7 @@ type Symbol struct {
 
 type ElfSymbolTable []Symbol
 
-func EncodeElfSymbolTable(data ElfSymbolTable) []byte {
+func (data ElfSymbolTable) Encode() []byte {
 	buf := []byte{}
 	for _, symbol := range data {
 		buf, _ = binary.Append(buf, binary.LittleEndian, symbol.Name)

@@ -9,7 +9,7 @@ type ElfIdentification struct {
 	AbiVersion uint8
 }
 
-func EncodeElfIdentification(w *ElfWriter, data ElfIdentification) {
+func (data ElfIdentification) WriteTo(w *ElfWriter) {
 	w.Write(data.Magic)
 	w.Write(data.Class)
 	w.Write(data.Data)

@@ -23,7 +23,7 @@ func NewElf(program ElfProgram) Elf {
 			Type:                     2,
 			Machine:                  0x3E,
 			Version:                  1,
-			Entry:                    134512960,
+			Entry:                    0x8048140,
 			Flags:                    0,
 			HeaderSize:               ElfHeaderSize,
 			ProgramHeaderEntrySize:   ElfProgramHeaderSize,
@@ -67,7 +67,7 @@ func GetElfSectionHeadersStart(elf *Elf) uint64 {
 
 func AddElfProgramHeaders(elf *Elf, program ElfProgram) {
 	AddElfProgramHeader(elf, NewElfProgramHeaderLoadElf(), []byte{})
-	code := EncodeElfProgramData(program)
+	code := program.Encode()
 	AddElfProgramHeader(elf, NewElfProgramHeaderLoadCode(uint64(len(code))), code)
 	AddElfProgramHeader(elf, NewElfProgramHeaderStack(), []byte{})
 }
@@ -120,7 +120,7 @@ func AddElfSectionHeaders(elf *Elf, program ElfProgram) {
 			Size:               8,
 		},
 	}
-	symbolTableData := EncodeElfSymbolTable(symbolTable)
+	symbolTableData := symbolTable.Encode()
 	AddElfSectionHeader(elf, NewElfSectionHeaderSymbolTable(1, elf.SectionHeaders[1].Offset+elf.SectionHeaders[1].Size, uint64(len(symbolTableData))), symbolTableData)
 	stringTable := ElfStringtable{
 		"",
@@ -128,12 +128,12 @@ func AddElfSectionHeaders(elf *Elf, program ElfProgram) {
 	for _, section := range program.Sections {
 		stringTable = append(stringTable, section.Name)
 	}
-	stringTableData := EncodeElfStringtable(stringTable)
+	stringTableData := stringTable.Encode()
 	AddElfSectionHeader(elf, NewElfSectionHeaderStringTable(9, elf.SectionHeaders[2].Offset+elf.SectionHeaders[2].Size, uint64(len(stringTableData))), stringTableData)
 	stringTable = ElfStringtable{
 		"", ".symtab", ".strtab", ".shstrtab", "tiny",
 	}
-	stringTableData = EncodeElfStringtable(stringTable)
+	stringTableData = stringTable.Encode()
 	AddElfSectionHeader(elf, NewElfSectionHeaderStringTable(17, elf.SectionHeaders[3].Offset+elf.SectionHeaders[3].Size, uint64(len(stringTableData))), stringTableData)
 }
 
@@ -157,10 +157,10 @@ func AddElfSectionHeader(elf *Elf, header *ElfSectionHeader, data []byte) {
 	elf.Offset += uint64(len(data))
 }
 
-func EncodeElf(w *ElfWriter, data Elf) {
-	EncodeElfHeader(w, data.Header)
+func (data Elf) WriteTo(w *ElfWriter) {
+	data.Header.WriteTo(w)
 	for _, header := range data.ProgramHeaders {
-		EncodeElfProgramHeader(w, header)
+		header.WriteTo(w)
 	}
 	w.Align(16)
 	for _, data := range data.Data {
@@ -168,6 +168,6 @@ func EncodeElf(w *ElfWriter, data Elf) {
 	}
 	w.Align(8)
 	for _, header := range data.SectionHeaders {
-		EncodeElfSectionHeader(w, header)
+		header.WriteTo(w)
 	}
 }

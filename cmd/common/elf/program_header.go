@@ -45,7 +45,7 @@ func NewElfProgramHeaderStack() *ElfProgramHeader {
 	}
 }
 
-func EncodeElfProgramHeader(w *ElfWriter, data *ElfProgramHeader) {
+func (data *ElfProgramHeader) WriteTo(w *ElfWriter) {
 	w.Write(data.Type)
 	w.Write(data.Flags)
 	w.Write(data.Offset)

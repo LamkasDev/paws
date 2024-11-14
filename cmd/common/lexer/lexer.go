@@ -20,7 +20,7 @@ func NewLexer() *Lexer {
 }
 
 func (lexer *Lexer) Process(file string) {
-	lexer.File = []rune(strings.ReplaceAll(string(file), "\r\n", ""))
+	lexer.File = []rune(strings.ReplaceAll(string(file), "\n", ""))
 	lexer.Position = 0
 	for !lexer.IsDone() {
 		token := lexer.GetToken()
@@ -34,7 +34,7 @@ func (lexer *Lexer) Process(file string) {
 func (lexer *Lexer) GetToken() *LexerToken {
 	c := lexer.GetNextCharacter()
 	switch c {
-	case '+', '-', '*', '/', '=', ';':
+	case '+', '-', '*', '/', '=', ';', '{', '}':
 		return &LexerToken{
 			Type:  LexerTokenMap[string(c)],
 			Value: string(c),
@@ -50,6 +50,13 @@ func (lexer *Lexer) GetToken() *LexerToken {
 		}
 	default:
 		str := lexer.GetNextIdentifier(c)
+		if keywordType, ok := LexerTokenKeywords[str]; ok {
+			return &LexerToken{
+				Type:  keywordType,
+				Value: str,
+			}
+		}
+
 		if num, err := strconv.Atoi(str); err == nil {
 			return &LexerToken{
 				Type:  LexerTokenNumber,

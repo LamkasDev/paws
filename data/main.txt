@@ -1,1 +1,5 @@
+fn nomain {
+    
+}
+
 str = "hello";

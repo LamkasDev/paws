@@ -1,7 +1,7 @@
 package elf
 
 type ElfProgram struct {
-	Sections []ElfProgramSection
+	Sections []*ElfProgramSection
 }
 
 type ElfProgramSection struct {
@@ -10,7 +10,7 @@ type ElfProgramSection struct {
 	Align uint64
 }
 
-func EncodeElfProgramData(program ElfProgram) []byte {
+func (program ElfProgram) Encode() []byte {
 	buf := []byte{}
 	for _, section := range program.Sections {
 		align := make([]byte, GetAlignedShift(uint64(len(buf)), section.Align))

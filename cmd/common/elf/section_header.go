@@ -60,7 +60,7 @@ func NewElfSectionHeaderStringTable(name uint32, offset uint64, size uint64) *El
 	}
 }
 
-func EncodeElfSectionHeader(w *ElfWriter, data *ElfSectionHeader) {
+func (data *ElfSectionHeader) WriteTo(w *ElfWriter) {
 	w.Write(data.Name)
 	w.Write(data.Type)
 	w.Write(data.Flags)

@@ -31,7 +31,7 @@ func main() {
 	defer f.Close()
 	writer := elf.NewElfWriter(f)
 
-	elf.EncodeElf(writer, elf.NewElf(*compilerc.Data))
+	elf.NewElf(*compilerc.Data).WriteTo(writer)
 	if err != nil {
 		panic(err)
 	}

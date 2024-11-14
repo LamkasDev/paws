@@ -3,6 +3,7 @@ package parser
 const ParserExpressionTypeAssignment = uint16(0)
 const ParserExpressionTypePrimitive = uint16(1)
 const ParserExpressionTypeArithmetic = uint16(2)
+const ParserExpressionTypeFunction = uint16(2)
 
 type ParserExpression struct {
 	Type uint16
@@ -16,6 +17,8 @@ func (rawExpression *ParserExpression) Sprint() string {
 	case *ParserExpressionPrimitive:
 		return expression.Sprint()
 	case *ParserExpressionArithmetic:
+		return expression.Sprint()
+	case *ParserExpressionFunction:
 		return expression.Sprint()
 	}
 

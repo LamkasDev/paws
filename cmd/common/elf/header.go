@@ -23,8 +23,8 @@ type ElfHeader struct {
 
 const ElfHeaderSize = uint16(unsafe.Sizeof(ElfHeader{}))
 
-func EncodeElfHeader(w *ElfWriter, data ElfHeader) {
-	EncodeElfIdentification(w, data.Identification)
+func (data ElfHeader) WriteTo(w *ElfWriter) {
+	data.Identification.WriteTo(w)
 	w.Write(data.Type)
 	w.Write(data.Machine)
 	w.Write(data.Version)
