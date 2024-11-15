@@ -16,3 +16,8 @@ const RegisterR12 = uint8(12)
 const RegisterR13 = uint8(13)
 const RegisterR14 = uint8(14)
 const RegisterR15 = uint8(15)
+
+const RegisterSyscallNumber = RegisterRax
+const RegisterSyscallArg0 = RegisterRdi
+const RegisterSyscallArg1 = RegisterRsi
+const RegisterSyscallArg2 = RegisterRdx

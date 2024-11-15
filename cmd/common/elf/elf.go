@@ -20,15 +20,14 @@ func NewElf(program ElfProgram) Elf {
 				OsAbi:      0,
 				AbiVersion: 0,
 			},
-			Type:                     2,
-			Machine:                  0x3E,
-			Version:                  1,
-			Entry:                    0x8048140,
-			Flags:                    0,
-			HeaderSize:               ElfHeaderSize,
-			ProgramHeaderEntrySize:   ElfProgramHeaderSize,
-			SectionHeaderEntrySize:   ElfSectionHeaderSize,
-			SectionHeaderStringIndex: 4,
+			Type:                   2,
+			Machine:                0x3E,
+			Version:                1,
+			Entry:                  0x08048000,
+			Flags:                  0,
+			HeaderSize:             ElfHeaderSize,
+			ProgramHeaderEntrySize: ElfProgramHeaderSize,
+			SectionHeaderEntrySize: ElfSectionHeaderSize,
 		},
 		ProgramHeaders: []*ElfProgramHeader{},
 		SectionHeaders: []*ElfSectionHeader{},
@@ -45,6 +44,7 @@ func NewElf(program ElfProgram) Elf {
 
 	elf.Header.SectionHeaderOffset = GetElfSectionHeadersStart(&elf)
 	elf.Header.SectionHeaderEntries = uint16(len(elf.SectionHeaders))
+	elf.Header.SectionHeaderStringIndex = uint16(len(elf.SectionHeaders) - 1)
 
 	return elf
 }
@@ -83,54 +83,44 @@ func EndElfProgramHeaders(elf *Elf) {
 
 func AddElfSectionHeaders(elf *Elf, program ElfProgram) {
 	AddElfSectionHeader(elf, NewElfSectionHeaderNull(), []byte{})
-	AddElfSectionHeader(elf, NewElfSectionHeaderProgram(27, elf.ProgramHeaders[1].VirtualAddress, elf.ProgramHeaders[1].Offset, elf.ProgramHeaders[1].MemorySize), []byte{})
-	symbolTable := ElfSymbolTable{
-		Symbol{},
-		Symbol{
-			Name:               1,
-			Flags:              0x4,
-			SectionHeaderIndex: 65521,
-		},
-		Symbol{
-			Name:               9,
-			Flags:              0x12,
-			SectionHeaderIndex: 1,
-			Value:              134512880,
-			Size:               38,
-		},
-		Symbol{
-			Name:               17,
-			Flags:              0x12,
-			SectionHeaderIndex: 1,
-			Value:              134512928,
-			Size:               17,
-		},
-		Symbol{
-			Name:               24,
-			Flags:              0x12,
-			SectionHeaderIndex: 1,
-			Value:              134512960,
-			Size:               50,
-		},
-		Symbol{
-			Name:               31,
-			Flags:              0x11,
-			SectionHeaderIndex: 1,
-			Value:              134513016,
-			Size:               8,
-		},
+	symbolTable := ElfSymbolTable{Symbol{}}
+	stringTableData := []byte{0}
+	for _, section := range program.Sections {
+		switch section.Type {
+		case ElfProgramSectionFunction:
+			symbolTable = append(symbolTable, Symbol{
+				Name:               uint32(len(stringTableData)),
+				Flags:              0x12,
+				SectionHeaderIndex: 1,
+				Value:              section.Address,
+				Size:               uint64(len(section.Data)),
+			})
+			if section.Name == "main" {
+				elf.Header.Entry = section.Address
+			}
+		case ElfProgramSectionString:
+			symbolTable = append(symbolTable, Symbol{
+				Name:               uint32(len(stringTableData)),
+				Flags:              0x11,
+				SectionHeaderIndex: 1,
+				Value:              section.Address,
+				Size:               GetAlignedAddress(uint64(len(section.Data)), 2) / 2,
+			})
+		case ElfProgramSectionNone:
+			symbolTable = append(symbolTable, Symbol{
+				Name:               uint32(len(stringTableData)),
+				Flags:              0x4,
+				SectionHeaderIndex: 65521,
+			})
+		}
+		stringTableData = append(stringTableData, []byte(section.Name)...)
+		stringTableData = append(stringTableData, 0)
 	}
 	symbolTableData := symbolTable.Encode()
+	AddElfSectionHeader(elf, NewElfSectionHeaderProgram(27, elf.ProgramHeaders[1].VirtualAddress, elf.ProgramHeaders[1].Offset, elf.ProgramHeaders[1].MemorySize), []byte{})
 	AddElfSectionHeader(elf, NewElfSectionHeaderSymbolTable(1, elf.SectionHeaders[1].Offset+elf.SectionHeaders[1].Size, uint64(len(symbolTableData))), symbolTableData)
-	stringTable := ElfStringtable{
-		"",
-	}
-	for _, section := range program.Sections {
-		stringTable = append(stringTable, section.Name)
-	}
-	stringTableData := stringTable.Encode()
 	AddElfSectionHeader(elf, NewElfSectionHeaderStringTable(9, elf.SectionHeaders[2].Offset+elf.SectionHeaders[2].Size, uint64(len(stringTableData))), stringTableData)
-	stringTable = ElfStringtable{
+	stringTable := ElfStringtable{
 		"", ".symtab", ".strtab", ".shstrtab", "tiny",
 	}
 	stringTableData = stringTable.Encode()
@@ -148,10 +138,6 @@ func AddElfProgramHeader(elf *Elf, header *ElfProgramHeader, data []byte) {
 }
 
 func AddElfSectionHeader(elf *Elf, header *ElfSectionHeader, data []byte) {
-	align := make([]byte, GetAlignedShift(elf.Offset, header.AddressAlign))
-	elf.Data = append(elf.Data, align...)
-	elf.Offset += uint64(len(align))
-
 	elf.SectionHeaders = append(elf.SectionHeaders, header)
 	elf.Data = append(elf.Data, data...)
 	elf.Offset += uint64(len(data))

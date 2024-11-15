@@ -23,6 +23,10 @@ func NewInstructionMovImm32ToR32(imm uint32, dst uint8) Instruction {
 	return ins
 }
 
+func (instruction Instruction) EditInstructionMovImm32ToR32(imm uint32) {
+	binary.Encode(instruction[3:], binary.LittleEndian, imm)
+}
+
 func NewInstructionMovMem32ToR32(address uint32, dst uint8) Instruction {
 	// TODO: actual adresssing (RIP-relative, make sure SIB byte doesn't fuck shit up)
 	ins := Instruction{
@@ -32,4 +36,8 @@ func NewInstructionMovMem32ToR32(address uint32, dst uint8) Instruction {
 	ins, _ = binary.Append(ins, binary.LittleEndian, address)
 
 	return ins
+}
+
+func (instruction Instruction) EditInstructionMovMem32ToR32(offset int32) {
+	binary.Encode(instruction[3:], binary.LittleEndian, offset)
 }

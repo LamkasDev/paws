@@ -1,5 +1,5 @@
-fn nomain {
+str = "hi :3";
+
+fn main {
     
 }
-
-str = "hello";

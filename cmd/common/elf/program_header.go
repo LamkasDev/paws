@@ -21,8 +21,8 @@ func NewElfProgramHeaderLoadElf() *ElfProgramHeader {
 	return &ElfProgramHeader{
 		Type:            1,
 		Flags:           4,
-		VirtualAddress:  134512640,
-		PhysicalAddress: 134508544,
+		VirtualAddress:  0x8048000,
+		PhysicalAddress: 0x8047000,
 		Align:           4096,
 	}
 }

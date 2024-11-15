@@ -23,6 +23,7 @@ func main() {
 
 	compilerc := compiler.NewCompiler()
 	compilerc.Process(parserc)
+	compilerc.PostProcess()
 
 	f, err := os.OpenFile("main", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 777)
 	if err != nil {
