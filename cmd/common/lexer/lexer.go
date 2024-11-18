@@ -34,7 +34,7 @@ func (lexer *Lexer) Process(file string) {
 func (lexer *Lexer) GetToken() *LexerToken {
 	c := lexer.GetNextCharacter()
 	switch c {
-	case '+', '-', '*', '/', '=', ';', '{', '}':
+	case '+', '-', '*', '/', '=', ';', '{', '}', '(', ')':
 		return &LexerToken{
 			Type:  LexerTokenMap[string(c)],
 			Value: string(c),

@@ -10,15 +10,23 @@ func (parser *Parser) GetExpressionFunction() *ParserExpression {
 	if name == nil {
 		return nil
 	}
+	if parser.MatchToken(lexer.LexerTokenLeftBracket) == nil {
+		return nil
+	}
+	if parser.MatchToken(lexer.LexerTokenRightBracket) == nil {
+		return nil
+	}
 	if parser.MatchToken(lexer.LexerTokenLeftCurly) == nil {
 		return nil
 	}
 
 	fn := NewParserExpressionFunction(name)
+	parser.Scope.AddSymbol(NewParserSymbol(name.Value.(string), ParserExpressionTypeFunction))
 	if parser.MatchToken(lexer.LexerTokenRightCurly) != nil {
 		return fn
 	}
 
+	parser.Scope = NewParserScope(name.Value.(string), parser.Scope)
 	for !parser.IsDone() {
 		expression := parser.GetExpressionStatement()
 		if expression == nil {
@@ -30,6 +38,7 @@ func (parser *Parser) GetExpressionFunction() *ParserExpression {
 			return fn
 		}
 	}
+	parser.Scope = parser.Scope.Parent
 
 	return fn
 }

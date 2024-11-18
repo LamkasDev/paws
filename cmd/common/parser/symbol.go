@@ -1,6 +1,7 @@
 package parser
 
-const ParserSymbolInt = uint16(0)
+const ParserSymbolVariable = uint16(0)
+const ParserSymbolFunction = uint16(1)
 
 type ParserSymbol struct {
 	Name string

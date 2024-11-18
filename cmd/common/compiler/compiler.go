@@ -36,26 +36,9 @@ func (compiler *Compiler) Process(parserc *parser.Parser) {
 	for _, rawExpression := range compiler.Parser.Expressions {
 		switch expression := rawExpression.Data.(type) {
 		case *parser.ParserExpressionFunction:
-			section := compiler.CreateSection(elf.ElfProgramSectionFunction, expression.Name.Value.(string), 8)
-			instruction.NewInstructionEndBr64().WriteTo(section)
-			compiler.AddSyscallPrint(section, "str")
-			compiler.AddSyscallSemop(section)
-			instruction.NewInstructionReturn().WriteTo(section)
-			compiler.AddSection(section)
+			compiler.CompileFunction(expression)
 		case *parser.ParserExpressionAssignment:
-			section := compiler.CreateSection(elf.ElfProgramSectionString, expression.Symbol.Name, 8)
-			address := section.Address + 8
-			section.Data = append(section.Data, byte(address))
-			section.Data = append(section.Data, byte(address>>8))
-			section.Data = append(section.Data, byte(address>>16))
-			section.Data = append(section.Data, byte(address>>24))
-			section.Data = append(section.Data, []byte{
-				0x00, 0x00, 0x00, 0x00,
-			}...)
-			section.Data = append(section.Data, []byte(expression.Value.Data.(*parser.ParserExpressionPrimitive).Value.(string))...)
-			section.Data = append(section.Data, []byte("\n")...)
-			section.Data = append(section.Data, 0x00)
-			compiler.AddSection(section)
+			compiler.CompileVariable(expression)
 		}
 	}
 }

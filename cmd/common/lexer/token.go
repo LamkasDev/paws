@@ -12,6 +12,8 @@ const LexerTokenString = uint16(8)
 const LexerTokenFunction = uint16(9)
 const LexerTokenLeftCurly = uint16(10)
 const LexerTokenRightCurly = uint16(11)
+const LexerTokenLeftBracket = uint16(12)
+const LexerTokenRightBracket = uint16(13)
 
 var LexerTokenMap = map[string]uint16{
 	"+": LexerTokenPlus,
@@ -22,6 +24,8 @@ var LexerTokenMap = map[string]uint16{
 	";": LexerTokenSemicolon,
 	"{": LexerTokenLeftCurly,
 	"}": LexerTokenRightCurly,
+	"(": LexerTokenLeftBracket,
+	")": LexerTokenRightBracket,
 }
 
 var LexerTokenKeywords = map[string]uint16{

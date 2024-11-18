@@ -6,23 +6,36 @@ func (parser *Parser) GetExpressionStatement() *ParserExpression {
 	token := parser.GetNextToken()
 	switch token.Type {
 	case lexer.LexerTokenIdentifier:
-		if parser.MatchToken(lexer.LexerTokenEq) == nil {
+		symbol := parser.Scope.FindSymbol(token.Value.(string))
+		if symbol == nil {
+			if parser.MatchToken(lexer.LexerTokenEq) == nil {
+				return nil
+			}
+
+			value := parser.GetExpressionValue()
+			if value == nil {
+				return nil
+			}
+			valueSymbol := NewParserSymbol(token.Value.(string), ParserSymbolVariable)
+			parser.Scope.AddSymbol(valueSymbol)
+
+			if parser.MatchToken(lexer.LexerTokenSemicolon) == nil {
+				return nil
+			}
+
+			return NewParserExpressionAssignment(valueSymbol, value)
+		}
+		if parser.MatchToken(lexer.LexerTokenLeftBracket) == nil {
 			return nil
 		}
-
-		value := parser.GetExpressionValue()
-		if value == nil {
+		if parser.MatchToken(lexer.LexerTokenRightBracket) == nil {
 			return nil
 		}
-
-		symbol := NewParserSymbol(token.Value.(string), ParserSymbolInt)
-		parser.Scope.AddSymbol(symbol)
-
 		if parser.MatchToken(lexer.LexerTokenSemicolon) == nil {
 			return nil
 		}
 
-		return NewParserExpressionAssignment(symbol, value)
+		return NewParserExpressionCall(symbol)
 	default:
 		// TODO: error handling
 		return nil

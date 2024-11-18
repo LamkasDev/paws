@@ -1,5 +1,9 @@
 str = "hi :3";
 
-fn main {
-    
+fn printhello() {
+    print();
+}
+
+fn main() {
+    printhello();
 }

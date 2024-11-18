@@ -24,7 +24,7 @@ func NewParserExpressionFunction(name *lexer.LexerToken) *ParserExpression {
 func (expression *ParserExpressionFunction) Sprint() string {
 	str := fmt.Sprintf("fn %s()", expression.Name.Value)
 	for _, statement := range expression.Statements {
-		str = fmt.Sprintf("\n%s", statement.Sprint())
+		str = fmt.Sprintf("%s\n%s", str, statement.Sprint())
 	}
 
 	return str

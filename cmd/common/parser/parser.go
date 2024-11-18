@@ -15,10 +15,13 @@ type Parser struct {
 }
 
 func NewParser() *Parser {
-	return &Parser{
+	parser := &Parser{
 		Expressions: []*ParserExpression{},
-		Scope:       NewParserScope(nil),
+		Scope:       NewParserScope("global", nil),
 	}
+	parser.Scope.AddSymbol(NewParserSymbol("print", ParserExpressionTypeFunction))
+
+	return parser
 }
 
 func (parser *Parser) Process(lexer *lexer.Lexer) {

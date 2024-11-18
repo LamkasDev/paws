@@ -1,21 +1,17 @@
 package parser
 
 type ParserScope struct {
-	Symbols  []*ParserSymbol
-	Children []*ParserScope
-	Parent   *ParserScope
+	Name    string
+	Symbols []*ParserSymbol
+	Parent  *ParserScope
 }
 
-func NewParserScope(parent *ParserScope) *ParserScope {
+func NewParserScope(name string, parent *ParserScope) *ParserScope {
 	return &ParserScope{
-		Symbols:  []*ParserSymbol{},
-		Children: []*ParserScope{},
-		Parent:   parent,
+		Name:    name,
+		Symbols: []*ParserSymbol{},
+		Parent:  parent,
 	}
-}
-
-func (scope *ParserScope) AddScope(child *ParserScope) {
-	scope.Children = append(scope.Children, child)
 }
 
 func (scope *ParserScope) AddSymbol(symbol *ParserSymbol) {
